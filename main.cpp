@@ -2,6 +2,7 @@
 #include <thread>
 #include <chrono>
 #include <unistd.h>
+#include <termios.h>
 #include "Board.h"
 
 using namespace std;
@@ -16,12 +17,25 @@ char player_movement;
 
 //function for asynchronous calls to find the keyboard inputs
 void Input(){
-    while(true){ 
-        cin>>player_movement;
-        if(player_movement == 'q' || quit_input){
-            break;
-        }
-    }
+    struct termios old_state, new_state;
+   //copy the settings of stdin to old_state
+   tcgetattr(STDIN_FILENO, &old_state);
+
+   new_state = old_state;//copy it to the new state for modification
+   //turn off canonical mode to stop buffered input
+   //turn off Echo to not display the character we input
+   new_state.c_lflag &= (~ICANON & ~ECHO);
+
+   //set the new settings to STDIN_FILENO or 0
+   //TCSANOW will set the settings immediately
+   tcsetattr(STDIN_FILENO, TCSANOW, &new_state);
+   
+   while(player_movement!='q'){
+       cin>>player_movement;
+   }
+
+   //after the game is over change the state of the terminal to normal
+   tcsetattr(STDIN_FILENO, TCSANOW, &old_state);
 }
 
 void Game(){
